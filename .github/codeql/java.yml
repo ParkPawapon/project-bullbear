@@ -1,0 +1,10 @@
+name: Bullbear Java
+
+paths:
+  - domain/src
+  - application/src
+  - presentation/src
+  - desktop/src
+
+queries:
+  - uses: security-extended

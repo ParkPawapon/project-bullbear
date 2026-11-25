@@ -21,6 +21,13 @@ Windows and Linux ARM64 remain conditional targets. See the [platform notes](doc
 - Git and network access on the first build to download the pinned toolchain. Use the wrapper from the project root.
 - A desktop session and OpenGL-compatible driver for the game window. `clean check` runs without graphics.
 
+Clone the repository and run the commands for your device from its root.
+
+```sh
+git clone https://github.com/ParkPawapon/project-bullbear.git
+cd project-bullbear
+```
+
 ## Windows
 
 In PowerShell, run these commands from the project root. In Command Prompt, use `gradlew.bat` in place of `.\gradlew.bat`.

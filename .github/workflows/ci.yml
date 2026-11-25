@@ -120,7 +120,7 @@ jobs:
 
   deliver:
     name: Deliver archive (${{ matrix.os }})
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ !cancelled() && needs.gate.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [gate]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 12

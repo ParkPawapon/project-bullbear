@@ -86,11 +86,21 @@ jobs:
         with:
           category: /language:java-kotlin
 
+  dependency_review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: high
+
   gate:
     name: CI gate
     runs-on: ubuntu-24.04
     timeout-minutes: 2
-    needs: [build, contribution, codeql]
+    needs: [build, contribution, codeql, dependency_review]
     if: ${{ always() }}
     steps:
       - name: Require every applicable check to pass
@@ -98,12 +108,14 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           CONTRIBUTION_RESULT: ${{ needs.contribution.result }}
           CODEQL_RESULT: ${{ needs.codeql.result }}
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency_review.result }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           test "$BUILD_RESULT" = success
           test "$CODEQL_RESULT" = success
           if [ "$EVENT_NAME" = pull_request ]; then
             test "$CONTRIBUTION_RESULT" = success
+            test "$DEPENDENCY_REVIEW_RESULT" = success
           fi
 
   deliver:

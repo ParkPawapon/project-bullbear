@@ -14,6 +14,18 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  contribution:
+    name: Contribution policy
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: python3 .github/scripts/check_contribution.py
+
   build:
     name: Build and test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -33,21 +45,41 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: ${{ github.event_name != 'push' }}
-      - name: Check on Windows
+      - name: Build on Windows
         if: runner.os == 'Windows'
-        run: .\gradlew.bat --no-daemon clean check
-      - name: Check on macOS and Linux
+        run: .\gradlew.bat --no-daemon clean build :desktop:installDist
+      - name: Build on macOS and Linux
         if: runner.os != 'Windows'
-        run: ./gradlew --no-daemon clean check
+        run: ./gradlew --no-daemon clean build :desktop:installDist
+      - name: Verify the macOS launcher first-thread option
+        if: runner.os == 'macOS'
+        run: grep -F -- '-XstartOnFirstThread' desktop/build/install/bullbear/bin/bullbear
+      - name: Smoke-test the installed distribution in Xvfb
+        if: runner.os == 'Linux'
+        timeout-minutes: 3
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
+          timeout 60s xvfb-run -a -s '-screen 0 1280x720x24' desktop/build/install/bullbear/bin/bullbear --smoke-test | tee "${RUNNER_TEMP}/bullbear-smoke.log"
+          grep -Fx FOUNDATION_SMOKE_OK "${RUNNER_TEMP}/bullbear-smoke.log"
+        shell: bash
 
   gate:
     name: CI gate
     runs-on: ubuntu-24.04
     timeout-minutes: 2
-    needs: [build]
+    needs: [build, contribution]
     if: ${{ always() }}
     steps:
-      - name: Require every build and test job to pass
+      - name: Require every applicable check to pass
         env:
           BUILD_RESULT: ${{ needs.build.result }}
-        run: test "$BUILD_RESULT" = success
+          CONTRIBUTION_RESULT: ${{ needs.contribution.result }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          test "$BUILD_RESULT" = success
+          if [ "$EVENT_NAME" = pull_request ]; then
+            test "$CONTRIBUTION_RESULT" = success
+          fi

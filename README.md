@@ -74,3 +74,8 @@ Use Tab and Shift+Tab to move focus, Enter or Space to activate a control, and E
 | `desktop` | Native launch and distribution |
 
 [Original design](GAME_DESIGN.md) · [Traceability](docs/design/traceability.md) · [Architecture](docs/architecture/overview.md) · [Verification](docs/foundation/verification.md)
+## CI archives and contributions
+
+Choose the artifact for your OS in a successful [main workflow run](https://github.com/ParkPawapon/project-bullbear/actions/workflows/ci.yml). Each download contains a Gradle ZIP and its SHA-256 file. Extract the artifact bundle and then the distribution ZIP. Run the launcher inside `bin/` using Java 21.
+
+See the [contribution policy](CONTRIBUTING.md) for branch codes and reviews and the [security policy](SECURITY.md) for private reports.

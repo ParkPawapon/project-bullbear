@@ -1,0 +1,16 @@
+[versions]
+gdx = "1.14.2"
+junit = "5.14.1"
+spotless = "7.2.1"
+google-java-format = "1.28.0"
+
+[libraries]
+gdx = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
+gdx-lwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdx" }
+gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdx" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

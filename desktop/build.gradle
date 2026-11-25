@@ -1,0 +1,31 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation project(':presentation')
+    implementation project(':application')
+    implementation libs.gdx.lwjgl3
+    runtimeOnly variantOf(libs.gdx.platform) {
+        classifier('natives-desktop')
+    }
+}
+
+application {
+    mainClass = 'game.bullbear.desktop.DesktopLauncher'
+    applicationName = 'bullbear'
+    if (System.getProperty('os.name').startsWith('Mac')) {
+        applicationDefaultJvmArgs = ['-XstartOnFirstThread']
+    }
+}
+
+distributions {
+    main {
+        contents {
+            from(rootProject.file('THIRD_PARTY_NOTICES.md'))
+            from(rootProject.file('docs/foundation/licenses')) {
+                into 'licenses'
+            }
+        }
+    }
+}

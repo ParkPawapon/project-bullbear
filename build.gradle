@@ -6,6 +6,8 @@ plugins {
 group = 'game.bullbear'
 version = '0.1.0'
 
+def formatterGuava = libs.versions.formatter.guava.get()
+
 subprojects {
     group = rootProject.group
     version = rootProject.version
@@ -39,6 +41,10 @@ subprojects {
             testRuntimeOnly libs.junit.launcher
         }
         configurations.configureEach {
+            // The formatter declares an older Guava affected by GHSA-xxph-c9ww-hj94.
+            if (name.startsWith('spotless')) {
+                resolutionStrategy.force("com.google.guava:guava:${formatterGuava}")
+            }
             if (name in ['compileClasspath', 'runtimeClasspath', 'testCompileClasspath', 'testRuntimeClasspath']) {
                 resolutionStrategy.activateDependencyLocking()
             }

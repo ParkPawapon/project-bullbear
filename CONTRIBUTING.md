@@ -8,9 +8,9 @@ Use Conventional Commit subjects for every commit. Examples include `feat(naviga
 
 Open a pull request against `main`. GitHub uses rebase merges to keep a linear history and preserve each typed subject. Required checks must pass on a branch that is current with `main`. Review conversations must be resolved. Direct pushes, force pushes, and deletion are restricted by the active rulesets.
 
-The CI gate includes the four-platform build and tests, Linux graphics smoke, PR contribution policy, CodeQL Java analysis, and PR dependency review. Repository rules pin the required status to GitHub Actions. Workflow actions use full release commit SHAs. Pull request workflow tokens have read access, with the CodeQL job allowed to upload security events.
+The CI gate includes the four-platform build and tests, Linux graphics smoke, PR contribution policy, CodeQL Java analysis, and PR dependency review. Repository rules pin the required status to GitHub Actions and independently block CodeQL errors and high or critical security findings. Workflow actions use full release commit SHAs. Pull request workflow tokens have read access, with the CodeQL job allowed to upload security events.
 
-`@ParkPawapon` owns all paths. The review ruleset grants only that account the pull-request review exception. The independent integrity ruleset applies to every account. Turn on auto-merge for a ready PR and let GitHub enforce the requirements. If GitHub still asks for Code Owner review on a PR from the sole Code Owner, the owner can merge using the PR review exception after the required checks succeed.
+`@ParkPawapon` owns all paths. The review ruleset grants only that account the pull-request review exception. The independent integrity ruleset applies to every account. Turn on GitHub auto-merge for each ready PR. Fork contributors may need a maintainer to start their workflow runs. If GitHub still asks for Code Owner review on a PR from the sole Code Owner, the owner can merge using the PR review exception after the required checks succeed.
 
 ## Delivery and security reports
 

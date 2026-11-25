@@ -66,20 +66,42 @@ jobs:
           grep -Fx FOUNDATION_SMOKE_OK "${RUNNER_TEMP}/bullbear-smoke.log"
         shell: bash
 
+  codeql:
+    name: CodeQL Java analysis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          languages: java-kotlin
+          build-mode: none
+          config-file: ./.github/codeql/java.yml
+      - uses: github/codeql-action/analyze@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          category: /language:java-kotlin
+
   gate:
     name: CI gate
     runs-on: ubuntu-24.04
     timeout-minutes: 2
-    needs: [build, contribution]
+    needs: [build, contribution, codeql]
     if: ${{ always() }}
     steps:
       - name: Require every applicable check to pass
         env:
           BUILD_RESULT: ${{ needs.build.result }}
           CONTRIBUTION_RESULT: ${{ needs.contribution.result }}
+          CODEQL_RESULT: ${{ needs.codeql.result }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           test "$BUILD_RESULT" = success
+          test "$CODEQL_RESULT" = success
           if [ "$EVENT_NAME" = pull_request ]; then
             test "$CONTRIBUTION_RESULT" = success
           fi

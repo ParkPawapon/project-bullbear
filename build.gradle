@@ -1,0 +1,113 @@
+plugins {
+    id 'base'
+    alias(libs.plugins.spotless) apply false
+}
+
+group = 'game.bullbear'
+version = '0.1.0'
+
+subprojects {
+    group = rootProject.group
+    version = rootProject.version
+
+    apply plugin: 'com.diffplug.spotless'
+
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+
+    plugins.withId('java') {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
+        tasks.withType(JavaCompile).configureEach {
+            options.release = 21
+            options.encoding = 'UTF-8'
+        }
+        tasks.withType(ProcessResources).configureEach {
+            filteringCharset = 'UTF-8'
+        }
+        tasks.withType(Test).configureEach {
+            useJUnitPlatform()
+        }
+        dependencies {
+            testImplementation platform(libs.junit.bom)
+            testImplementation libs.junit.jupiter
+            testRuntimeOnly libs.junit.launcher
+        }
+        configurations.configureEach {
+            if (name in ['compileClasspath', 'runtimeClasspath', 'testCompileClasspath', 'testRuntimeClasspath']) {
+                resolutionStrategy.activateDependencyLocking()
+            }
+        }
+        dependencyLocking {
+            lockMode = LockMode.STRICT
+        }
+    }
+
+    spotless {
+        java {
+            googleJavaFormat(libs.versions.google.java.format.get()).aosp()
+        }
+    }
+}
+
+def allowedProjects = [
+    domain: [],
+    application: [':domain'],
+    presentation: [':application'],
+    desktop: [':application', ':presentation']
+]
+def allowedLibraries = [
+    domain: [],
+    application: [],
+    presentation: ['com.badlogicgames.gdx:gdx'],
+    desktop: ['com.badlogicgames.gdx:gdx-backend-lwjgl3', 'com.badlogicgames.gdx:gdx-platform']
+]
+
+tasks.register('verifyArchitecture') {
+    group = 'verification'
+    description = 'Enforces production module and library boundaries.'
+    doLast {
+        if (subprojects*.name.toSet() != allowedProjects.keySet()) {
+            throw new GradleException('Project modules differ from the architecture allowlist.')
+        }
+        subprojects.each { module ->
+            def production = ['api', 'implementation', 'compileOnlyApi', 'compileOnly', 'runtimeOnly', 'annotationProcessor']
+            production.collectMany { name ->
+                module.configurations.findByName(name)?.allDependencies?.toList() ?: []
+            }.toSet().each { dependency ->
+                def target = dependency instanceof ProjectDependency
+                    ? dependency.path
+                    : "${dependency.group}:${dependency.name}".toString()
+                if (!(target in allowedProjects[module.name]) && !(target in allowedLibraries[module.name])) {
+                    throw new GradleException("${module.path} declares an unapproved production dependency: ${target}")
+                }
+            }
+
+            def forbiddenImports = [
+                domain: /(?:game\.bullbear\.(?:application|presentation|desktop)|com\.badlogic\.gdx|org\.lwjgl|java\.awt|javax\.swing|javafx|java\.io|java\.nio\.file|java\.net)\b/,
+                application: /(?:game\.bullbear\.(?:presentation|desktop)|com\.badlogic\.gdx|org\.lwjgl|java\.awt|javax\.swing|javafx|java\.io|java\.nio\.file|java\.net)\b/,
+                presentation: /(?:game\.bullbear\.desktop|com\.badlogic\.gdx\.backends|org\.lwjgl)\b/
+            ][module.name]
+            if (forbiddenImports != null) {
+                module.fileTree('src/main/java').matching { include '**/*.java' }.each { source ->
+                    if (source.readLines('UTF-8').any { it =~ /^\s*import\s+(?:static\s+)?${forbiddenImports}/ }) {
+                        throw new GradleException("${module.path} imports a prohibited package in ${module.relativePath(source)}")
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'verifyArchitecture', subprojects.collect { "${it.path}:check" }
+}
+
+tasks.named('assemble') {
+    dependsOn subprojects.collect { "${it.path}:assemble" }
+}

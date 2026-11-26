@@ -1,5 +1,14 @@
 plugins {
     id 'application'
+    alias(libs.plugins.cyclonedx)
+}
+
+tasks.named('cyclonedxDirectBom') {
+    includeConfigs = ['runtimeClasspath']
+    includeBuildSystem = false
+    includeBomSerialNumber = false
+    failOnUnresolvedDependencies = true
+    xmlOutput.unsetConvention()
 }
 
 tasks.named('processResources') {

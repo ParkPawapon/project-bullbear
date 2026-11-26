@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -46,8 +47,30 @@ final class GameFixtures {
         return new GameCatalog(sources(), List.of(DEFINITION));
     }
 
+    static GameRules rules(long wallet, long special) {
+        return new GameRules(goals(), coin(wallet), special(special), SOURCES, 2, 2);
+    }
+
+    static GameRun run(long wallet, long special) {
+        return GameRun.start(new RunId(1), rules(wallet, special), catalog());
+    }
+
     static RoundEntry entry(RoundKey key, long interest, long minimum, NewsClaim... claims) {
         return new RoundEntry(key, coin(interest), coin(minimum), List.of(claims));
+    }
+
+    static RoundKey key(GameRun run) {
+        return run.snapshot().key();
+    }
+
+    static GameRun planning(long wallet, long special) {
+        var run = run(wallet, special);
+        run.enter(entry(key(run), 0, 0));
+        return run;
+    }
+
+    static Investment.Allocation allocate(long stake) {
+        return new Investment.Allocation(Map.of(StockId.STABLE, coin(stake)));
     }
 
     static Map<StockId, Investment.Movement> movements() {
@@ -58,5 +81,24 @@ final class GameFixtures {
                     stock == StockId.STABLE ? Investment.Movement.UP : Investment.Movement.DOWN);
         }
         return result;
+    }
+
+    static Investment.Settlement settlement(GameRun run, long payout, long reward) {
+        return settlement(run, payout, reward, Optional.empty());
+    }
+
+    static Investment.Settlement settlement(
+            GameRun run, long payout, long reward, Optional<Shop.Rotation> rotation) {
+        return new Investment.Settlement(
+                run.snapshot().commitment().orElseThrow(),
+                movements(),
+                Map.of(StockId.STABLE, coin(payout)),
+                special(reward),
+                rotation);
+    }
+
+    static void resolve(GameRun run, long stake, long payout) {
+        run.commit(key(run), allocate(stake));
+        run.settle(settlement(run, payout, 0));
     }
 }

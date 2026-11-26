@@ -1,0 +1,119 @@
+import org.gradle.process.ExecOperations
+import org.gradle.api.file.FileSystemOperations
+import java.nio.file.Files
+import javax.inject.Inject
+
+abstract class BullbearAppImage extends DefaultTask {
+    @InputDirectory
+    abstract DirectoryProperty getStagedApplication()
+
+    @InputFile
+    abstract RegularFileProperty getJpackage()
+
+    @Input
+    abstract Property<String> getReleaseVersion()
+
+    @Input
+    abstract Property<String> getLauncherClass()
+
+    @Input
+    abstract ListProperty<String> getLauncherOptions()
+
+    @OutputDirectory
+    abstract DirectoryProperty getImageOutput()
+
+    @Internal
+    abstract DirectoryProperty getSafeOutputParent()
+
+    @Inject
+    abstract ExecOperations getProcesses()
+
+    @Inject
+    abstract FileSystemOperations getFileOperations()
+
+    @TaskAction
+    void buildImage() {
+        def version = releaseVersion.get()
+        if (!(version ==~ /(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)/)) {
+            throw new GradleException('Native candidates require a numeric MAJOR.MINOR.PATCH version.')
+        }
+        def destination = imageOutput.get().asFile
+        def outputParent = safeOutputParent.get().asFile
+        Files.createDirectories(outputParent.toPath())
+        if (destination.canonicalFile.parentFile != outputParent.canonicalFile ||
+                Files.isSymbolicLink(destination.toPath())) {
+            throw new GradleException('jpackage destination must be a direct child of the build output.')
+        }
+        fileOperations.delete { delete destination }
+        def input = stagedApplication.get().asFile
+        def args = ['--type', 'app-image', '--dest', destination.absolutePath,
+                    '--name', 'Bullbear', '--app-version', version, '--input', input.absolutePath,
+                    '--main-jar', "desktop-${version}.jar", '--main-class', launcherClass.get()]
+        if (!launcherOptions.get().empty) {
+            args += ['--java-options', launcherOptions.get().join(' ')]
+        }
+        processes.exec {
+            executable jpackage.get().asFile
+            commandLine = [jpackage.get().asFile.absolutePath] + args
+        }.assertNormalExitValue()
+    }
+}
+
+def version = project.version.toString()
+def os = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+def target = os.startsWith('windows') ? 'windows' : (os.startsWith('mac') ? 'macos' : 'linux')
+def machine = System.getProperty('os.arch')
+def arch = machine in ['amd64', 'x86_64'] ? 'x64' : (machine in ['aarch64', 'arm64'] ? 'arm64' : machine)
+def install = tasks.named('installDist', Sync)
+def candidate = layout.buildDirectory.dir('candidate')
+def stage = tasks.register('stageAppImage', Sync) {
+    dependsOn install
+    from(install.map { it.destinationDir }) {
+        include 'lib/*.jar', 'licenses/**', 'THIRD_PARTY_NOTICES.md'
+        eachFile { entry ->
+            if (entry.path.startsWith('lib/')) {
+                entry.path = entry.name
+            }
+        }
+        includeEmptyDirs = false
+    }
+    into layout.buildDirectory.dir('jpackage-input')
+}
+
+def image = tasks.register('packageAppImage', BullbearAppImage) {
+    group = 'distribution'
+    description = 'Builds an unsigned native app-image with a bundled Java runtime.'
+    dependsOn stage
+    stagedApplication.set(layout.buildDirectory.dir('jpackage-input'))
+    def executableName = target == 'windows' ? 'jpackage.exe' : 'jpackage'
+    jpackage.set(javaToolchains.launcherFor(java.toolchain).map {
+        it.metadata.installationPath.file("bin/${executableName}")
+    })
+    releaseVersion.set(version)
+    launcherClass.set(application.mainClass)
+    launcherOptions.set(application.applicationDefaultJvmArgs)
+    imageOutput.set(layout.buildDirectory.dir('native-image'))
+    safeOutputParent.set(layout.buildDirectory)
+}
+
+tasks.register('printAppVersion') {
+    doLast { println version }
+}
+
+tasks.register('archiveAppImage', Exec) {
+    group = 'distribution'
+    description = 'Archives the host app-image with its executable launcher.'
+    dependsOn image
+    def imageDirectory = image.flatMap { it.imageOutput }
+    def extension = target == 'windows' ? 'zip' : 'tar.gz'
+    def artifact = candidate.map { it.file("bullbear-${version}-${target}-${arch}.${extension}") }
+    inputs.dir imageDirectory
+    outputs.file artifact
+    doFirst {
+        def output = artifact.get().asFile
+        Files.createDirectories(output.parentFile.toPath())
+        def bundle = target == 'macos' ? 'Bullbear.app' : 'Bullbear'
+        commandLine(target == 'windows' ? 'tar.exe' : 'tar',
+                '-a', '-cf', output.absolutePath, '-C', imageDirectory.get().asFile.absolutePath, bundle)
+    }
+}

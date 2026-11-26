@@ -5,14 +5,14 @@ Gradle compiles each layer separately, so the inner modules can be built and tes
 | Layer | Phase 01 responsibility | Future ownership |
 |---|---|---|
 | `domain` | Three enums for design identities | Market, news, economy, charms, and progression rules |
-| `application` | Catalog of immutable identity lists | Use cases, player-visible read models, and rule orchestration |
+| `application` | Catalog of immutable identity lists and a seeded random factory | Use cases, player-visible read models, and rule orchestration |
 | `presentation` | One workspace and route-specific placeholder content | Screens, input, charts, animation, and localization |
-| `desktop` | CLI, host startup, native window, composition | Platform-specific configuration and launch packaging |
+| `desktop` | CLI, host startup, native window, composition, local settings and logs, app-image packaging | Platform adapters for future use cases |
 
-`DesktopLauncher` composes a `GameDesignCatalog` with a `FoundationGame`. The game creates its skin and screen after OpenGL initialization. The screen owns one `Stage`, a `FitViewport`, and a `ShellNavigation` instance. The stage owns the batch it creates. The screen borrows the skin, which owns the color texture and bitmap font. Shutdown removes owned input routing and releases the stage before disposing the skin.
+`DesktopLauncher` reads platform settings and starts local diagnostic logging before it composes a `GameDesignCatalog` with a `FoundationGame`. The game creates its skin and screen after OpenGL initialization. The screen owns one `Stage`, a `FitViewport`, and a `ShellNavigation` instance. The stage owns the batch it creates. The screen borrows the skin, which owns the color texture and bitmap font. Shutdown removes owned input routing and releases the stage before disposing the skin. The optional Thai preview owns a separate stage and shaped texture. The game releases acquired resources in reverse order when initialization fails or the window closes.
 
 The current OOP evidence is private route state with validated transitions, immutable catalog output, constructor injection, and composition of framework components. The foundation uses inheritance for the libGDX `Game` and `ScreenAdapter` contracts. The enums express fixed identities.
 
-Future investment, shop, bank, and progression use cases belong under their respective responsibilities in `application`. Domain packages can grow around stock, news, charm, economy, and progression concepts. If a future use case needs determinism or persistence, define its required randomness, clock, or save port at that boundary and add a concrete adapter when the requirement is established. A separate infrastructure module can be evaluated at that point.
+Future investment, shop, bank, and progression use cases belong under their respective responsibilities in `application`. Domain packages can grow around stock, news, charm, economy, and progression concepts. Use cases that need reproducibility can receive their own `RandomGenerator` from `SimulationRandom.seeded`. Future clock and game-save requirements can define their ports at the use case boundary. The current desktop settings schema covers platform preferences.
 
 [Actual module and class diagrams](diagrams.md) · [Architecture decisions](decisions.md)

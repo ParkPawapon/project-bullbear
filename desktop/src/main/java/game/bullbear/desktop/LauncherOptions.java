@@ -3,6 +3,7 @@ package game.bullbear.desktop;
 enum LauncherOptions {
     INTERACTIVE,
     HELP,
+    VERSION,
     SMOKE_TEST;
 
     static LauncherOptions parse(String[] args) {
@@ -14,6 +15,7 @@ enum LauncherOptions {
         }
         return switch (args[0]) {
             case "--help" -> HELP;
+            case "--version" -> VERSION;
             case "--smoke-test" -> SMOKE_TEST;
             default -> throw new IllegalArgumentException("Unknown option: " + args[0]);
         };

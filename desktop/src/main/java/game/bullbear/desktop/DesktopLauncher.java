@@ -5,9 +5,11 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import game.bullbear.application.catalog.GameDesignCatalog;
 import game.bullbear.presentation.FoundationGame;
 import game.bullbear.presentation.theme.PixelTheme;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public final class DesktopLauncher {
-    private static final String USAGE = "Usage: bullbear [--help | --smoke-test]";
+    private static final String USAGE = "Usage: bullbear [--help | --version | --smoke-test]";
 
     private DesktopLauncher() {}
 
@@ -24,6 +26,11 @@ public final class DesktopLauncher {
         if (options == LauncherOptions.HELP) {
             System.out.println(USAGE);
             System.out.println("  --smoke-test  Render a real frame and exit.");
+            return;
+        }
+
+        if (options == LauncherOptions.VERSION) {
+            System.out.println("Bullbear " + version());
             return;
         }
 
@@ -47,6 +54,17 @@ public final class DesktopLauncher {
                             + "). Check the display, OpenGL driver, "
                             + "and matching Java runtime architecture.");
             throw failure;
+        }
+    }
+
+    static String version() {
+        try (var resource = DesktopLauncher.class.getResourceAsStream("/bullbear-version.txt")) {
+            if (resource == null) {
+                throw new IllegalStateException("Missing packaged version");
+            }
+            return new String(resource.readAllBytes(), StandardCharsets.UTF_8).strip();
+        } catch (IOException invalid) {
+            throw new IllegalStateException("Cannot read packaged version", invalid);
         }
     }
 

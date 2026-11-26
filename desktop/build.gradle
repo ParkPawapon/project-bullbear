@@ -2,6 +2,14 @@ plugins {
     id 'application'
 }
 
+tasks.named('processResources') {
+    def releaseVersion = project.version.toString()
+    inputs.property('appVersion', releaseVersion)
+    filesMatching('bullbear-version.txt') {
+        expand(version: releaseVersion)
+    }
+}
+
 dependencies {
     implementation project(':presentation')
     implementation project(':application')

@@ -136,3 +136,7 @@ Phase 01.1 was later split into coded branches. The following pull requests pass
 - DE002 [5 commits and merged PR](https://github.com/ParkPawapon/project-bullbear/pull/11) · [GitHub Actions](https://github.com/ParkPawapon/project-bullbear/actions/runs/45784496435)
 - FE003 [4 commits and merged PR](https://github.com/ParkPawapon/project-bullbear/pull/12) · [GitHub Actions](https://github.com/ParkPawapon/project-bullbear/actions/runs/45784802883)
 - CI004 [4 commits and merged PR](https://github.com/ParkPawapon/project-bullbear/pull/13) · [GitHub Actions](https://github.com/ParkPawapon/project-bullbear/actions/runs/45785123586)
+
+## Dependency maintenance follow-up
+
+On 2026-11-27 the maintained build passed strict clean checks and distribution assembly on Windows x64 and a fresh Gradle dependency cache on Ubuntu x64 under WSL2. Windows reported 78 tests with zero failures or skips, reused the opt-in configuration cache on the second check, and ran the installed shell to `FOUNDATION_SMOKE_OK`. The action upgrades passed protected GitHub CI on the four configured runners. The manual candidate workflow was checked with Actionlint. [Dependency provenance](../foundation/dependencies.md#november-2026-dependency-maintenance) · [Action upgrade CI](https://github.com/ParkPawapon/project-bullbear/actions/runs/45872919931)

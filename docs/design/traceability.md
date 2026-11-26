@@ -65,3 +65,22 @@ The design combines incomplete information, source credibility versus payoff, an
 - Zero-allocation handling, allocation granularity, rounding, maximum balances, and exact deposit timing.
 - Interest formula, cap, minimum income, and first-round and stage-transition timing.
 - Save format, replay determinism, difficulty, and whether to include boss rules and consumables.
+
+## Phase 02 structural mapping
+
+Source IDs retain their original meanings. The phase evidence maps the implementation to its test scenarios, and the design addendum records future proposals and their phases. [Evidence and test mapping](../engineering/phase-02-evidence.md) · [Design addendum](phase-02-game-design-addendum.md)
+
+| Source ID | Phase 02 contract and proof | Remaining phase |
+|---|---|---|
+| GD-01, GD-24 | Whole Coin budget and buy-only allocation with commitment revalidation. `ValueContractsTest` and `GameRunTest`. | 05 user flow and trading resolution |
+| GD-02, GD-03, GD-05, GD-28 | Strictly increasing seven-stage goals, three settlements per stage, exact final bank comparison, victory, game over and optional endless. `GameRunTest` and `GameSessionTest`. | 08 playable coordination and approved tuning |
+| GD-04, GD-26 | Trusted payout and profit-only special reward, safe result and optional rotation. `ValueContractsTest` and `GameRunTest`. | 05 reward formula and presentation, 07 actual offer generation |
+| GD-06, GD-07, GD-25 | Five canonical `StockId`s and complete movement data. `ValueContractsTest`. | 03 market behavior, 05/09 display |
+| GD-08, GD-09, GD-10, GD-11 | Five source definitions, three initial sources, monotonic unlock and a projection that preserves trusted hidden data. `ValueContractsTest` and `GameRunTest`. | 03/04 sampling and news influence, 07 charm use |
+| GD-12 | Future inversion and conflict handling recorded in the addendum. | 03/04 truth and market influence |
+| GD-13, GD-17, GD-18 | Typed paid charm definitions, unique owned identities, capacity and the existing distinct categories. `ValueContractsTest` and `GameRunTest`. | 07 ownership transaction and effects |
+| GD-14, GD-15, GD-16 | Stable-phase availability, revision-checked vacancy and optional complete replacement at settlement. `GameRunTest`. | 07 generated rotation and purchase, 09 UI |
+| GD-19, GD-20, GD-27 | Irreversible wallet-to-bank transfer during planning and post-result, including the final window. `GameRunTest`. | 06 bank use case and feedback |
+| GD-21, GD-22, GD-23 | Supplied round credit goes to the wallet once. First-round policy recorded separately. `GameRunTest`. | 06 interest and minimum-income calculations |
+| GD-29, GD-30 | Optional boss variants and one-use truth reveal described as proposals. | 07/08 owner decision and experiments |
+| GD-31 | Original references remain contextual. | Continue original design and assets |

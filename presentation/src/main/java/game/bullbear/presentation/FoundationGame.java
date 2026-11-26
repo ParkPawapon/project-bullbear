@@ -2,7 +2,6 @@ package game.bullbear.presentation;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import game.bullbear.application.catalog.GameDesignCatalog;
 import game.bullbear.presentation.screen.FoundationScreen;
 import game.bullbear.presentation.theme.FoundationSkin;
@@ -11,7 +10,7 @@ import java.util.Objects;
 public final class FoundationGame extends Game {
     private final GameDesignCatalog catalog;
     private final boolean smokeTest;
-    private Skin skin;
+    private final OwnedResources resources = new OwnedResources();
     private boolean smokeFrameRendered;
 
     public FoundationGame(GameDesignCatalog catalog, boolean smokeTest) {
@@ -22,8 +21,11 @@ public final class FoundationGame extends Game {
     @Override
     public void create() {
         try {
-            skin = FoundationSkin.create();
-            setScreen(new FoundationScreen(catalog, skin));
+            var skin = FoundationSkin.create();
+            resources.add(skin::dispose);
+            var workspace = new FoundationScreen(catalog, skin);
+            resources.add(workspace::dispose);
+            setScreen(workspace);
         } catch (RuntimeException | Error failure) {
             try {
                 dispose();
@@ -49,18 +51,7 @@ public final class FoundationGame extends Game {
 
     @Override
     public void dispose() {
-        var ownedScreen = getScreen();
-        var ownedSkin = skin;
         screen = null;
-        skin = null;
-        try {
-            if (ownedScreen != null) {
-                ownedScreen.dispose();
-            }
-        } finally {
-            if (ownedSkin != null) {
-                ownedSkin.dispose();
-            }
-        }
+        resources.close();
     }
 }

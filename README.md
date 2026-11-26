@@ -95,3 +95,7 @@ Run `clean check` for JUnit, Spotless, module boundaries, JaCoCo coverage and Sp
 Use `--args=--thai-preview` with `:desktop:run` to view the shaped Thai sample. Use `--args=--diagnostics` to print logical and framebuffer dimensions and sampled frame timing. The default workspace remains English.
 
 See the [engineering runbook](docs/engineering/phase-01.1-runbook.md) for local settings, crash reports, release candidates, and dependency maintenance. [Verification evidence](docs/engineering/phase-01.1-evidence.md)
+
+## Phase 02 core domain
+
+Run the `:domain:test` and `:application:test` tasks for the headless run, economy, visibility and progression tests. The desktop shell still opens the four unavailable feature panels. [Core model](docs/architecture/domain-model.md) · [State machine](docs/architecture/game-state-machine.md) · [Phase 02 evidence](docs/engineering/phase-02-evidence.md)

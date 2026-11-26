@@ -61,54 +61,7 @@ subprojects {
     }
 }
 
-def allowedProjects = [
-    domain: [],
-    application: [':domain'],
-    presentation: [':application'],
-    desktop: [':application', ':presentation']
-]
-def allowedLibraries = [
-    domain: [],
-    application: [],
-    presentation: ['com.badlogicgames.gdx:gdx'],
-    desktop: ['com.badlogicgames.gdx:gdx-backend-lwjgl3', 'com.badlogicgames.gdx:gdx-platform']
-]
-
-tasks.register('verifyArchitecture') {
-    group = 'verification'
-    description = 'Enforces production module and library boundaries.'
-    doLast {
-        if (subprojects*.name.toSet() != allowedProjects.keySet()) {
-            throw new GradleException('Project modules differ from the architecture allowlist.')
-        }
-        subprojects.each { module ->
-            def production = ['api', 'implementation', 'compileOnlyApi', 'compileOnly', 'runtimeOnly', 'annotationProcessor']
-            production.collectMany { name ->
-                module.configurations.findByName(name)?.allDependencies?.toList() ?: []
-            }.toSet().each { dependency ->
-                def target = dependency instanceof ProjectDependency
-                    ? dependency.path
-                    : "${dependency.group}:${dependency.name}".toString()
-                if (!(target in allowedProjects[module.name]) && !(target in allowedLibraries[module.name])) {
-                    throw new GradleException("${module.path} declares an unapproved production dependency: ${target}")
-                }
-            }
-
-            def forbiddenImports = [
-                domain: /(?:game\.bullbear\.(?:application|presentation|desktop)|com\.badlogic\.gdx|org\.lwjgl|java\.awt|javax\.swing|javafx|java\.io|java\.nio\.file|java\.net)\b/,
-                application: /(?:game\.bullbear\.(?:presentation|desktop)|com\.badlogic\.gdx|org\.lwjgl|java\.awt|javax\.swing|javafx|java\.io|java\.nio\.file|java\.net)\b/,
-                presentation: /(?:game\.bullbear\.desktop|com\.badlogic\.gdx\.backends|org\.lwjgl)\b/
-            ][module.name]
-            if (forbiddenImports != null) {
-                module.fileTree('src/main/java').matching { include '**/*.java' }.each { source ->
-                    if (source.readLines('UTF-8').any { it =~ /^\s*import\s+(?:static\s+)?${forbiddenImports}/ }) {
-                        throw new GradleException("${module.path} imports a prohibited package in ${module.relativePath(source)}")
-                    }
-                }
-            }
-        }
-    }
-}
+apply from: 'gradle/architecture.gradle'
 
 tasks.named('check') {
     dependsOn 'verifyArchitecture', subprojects.collect { "${it.path}:check" }

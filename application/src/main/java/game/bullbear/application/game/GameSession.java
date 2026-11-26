@@ -22,7 +22,10 @@ public final class GameSession {
     public GameSnapshot start(RunId id) {
         Objects.requireNonNull(id);
         if (run != null) {
-            throw new IllegalStateException("A run is already owned by this session");
+            var previous = run.snapshot();
+            if (!previous.phase().terminal() || id.value() <= previous.key().runId().value()) {
+                throw new IllegalStateException("Start requires a terminal run and a new run ID");
+            }
         }
         var next = GameRun.start(id, rules, catalog);
         var initial = next.snapshot();

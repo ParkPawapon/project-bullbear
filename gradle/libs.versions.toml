@@ -1,7 +1,7 @@
 [versions]
 gdx = "1.14.2"
 junit = "5.14.1"
-spotless = "7.2.1"
+spotless = "8.12.0"
 google-java-format = "1.28.0"
 formatter-guava = "33.7.2-jre"
 jacoco = "0.8.14"

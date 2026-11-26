@@ -244,6 +244,25 @@ public final class FoundationScreen extends ScreenAdapter {
         showRoute();
     }
 
+    /** Exercises the same Scene2D action listeners as the visible controls during native smoke. */
+    public void verifyNavigation() {
+        for (int pass = 0; pass < 2; pass++) {
+            for (int index = 0; index < FEATURES.size(); index++) {
+                focusOrder.get(index).fire(new ChangeListener.ChangeEvent());
+                if (navigation.current() != FEATURES.get(index)) {
+                    throw new IllegalStateException("Workspace feature did not open");
+                }
+                focusOrder.getFirst().fire(new ChangeListener.ChangeEvent());
+                if (navigation.current() != Route.HOME) {
+                    throw new IllegalStateException("Workspace home did not reopen");
+                }
+            }
+        }
+        if (Gdx.input.getInputProcessor() != stage) {
+            throw new IllegalStateException("Workspace input processor detached");
+        }
+    }
+
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);

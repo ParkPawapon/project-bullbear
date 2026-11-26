@@ -68,6 +68,7 @@ public final class FoundationGame extends Game {
             sample();
         }
         if (smokeTest && !smokeFrameRendered) {
+            ((FoundationScreen) getScreen()).verifyNavigation();
             smokeFrameRendered = true;
             Gdx.app.exit();
         }

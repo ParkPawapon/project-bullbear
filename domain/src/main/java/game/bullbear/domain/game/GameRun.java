@@ -7,11 +7,14 @@ import static game.bullbear.domain.game.GamePhase.PLANNING;
 import static game.bullbear.domain.game.GamePhase.POST_RESULT;
 import static game.bullbear.domain.game.GamePhase.ROUND_ENTRY;
 import static game.bullbear.domain.game.GamePhase.VICTORY;
+import static game.bullbear.domain.game.GameRejection.Reason.DUPLICATE_CHARM;
 import static game.bullbear.domain.game.GameRejection.Reason.INSUFFICIENT_COIN;
+import static game.bullbear.domain.game.GameRejection.Reason.INVENTORY_FULL;
 import static game.bullbear.domain.game.GameRejection.Reason.STALE_INPUT;
 import static game.bullbear.domain.game.GameRejection.Reason.WRONG_PHASE;
 
 import game.bullbear.domain.news.NewsSourceId;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,6 +187,32 @@ public final class GameRun {
 
     Optional<RoundEntry> currentEntry() {
         return Optional.ofNullable(entry);
+    }
+
+    /** Trusted structural grant for testing ownership; actual purchase and effects live later. */
+    void acquire(RoundKey expected, CharmDefinition.Owned charm) {
+        requireStable(expected);
+        catalog.requireCharm(charm.definitionId());
+        if (charms.containsKey(charm.instanceId())) {
+            throw new GameRejection(DUPLICATE_CHARM);
+        }
+        if (charms.size() >= rules.inventoryCapacity()) {
+            throw new GameRejection(INVENTORY_FULL);
+        }
+        charms.put(charm.instanceId(), charm);
+    }
+
+    void unlockSource(RoundKey expected, NewsSourceId source) {
+        requireStable(expected);
+        var next = EnumSet.copyOf(visibleSources);
+        next.add(Objects.requireNonNull(source));
+        visibleSources = next;
+    }
+
+    void consumeOffer(
+            RoundKey expected, long revision, Shop.SlotId slot, CharmDefinition.Id offer) {
+        requireStable(expected);
+        shop = shop.consume(revision, slot, offer);
     }
 
     private void advanceEndless(CoinAmount nextGoal) {

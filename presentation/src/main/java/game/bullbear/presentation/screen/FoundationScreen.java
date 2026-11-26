@@ -23,6 +23,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import game.bullbear.application.catalog.GameDesignCatalog;
+import game.bullbear.presentation.ShellStrings;
 import game.bullbear.presentation.navigation.Route;
 import game.bullbear.presentation.navigation.ShellNavigation;
 import game.bullbear.presentation.theme.PixelTheme;
@@ -38,6 +39,7 @@ public final class FoundationScreen extends ScreenAdapter {
 
     private final Stage stage;
     private final Skin skin;
+    private final ShellStrings strings;
     private final Color background = PixelTheme.background();
     private final ShellNavigation navigation = new ShellNavigation();
     private final Table content = new Table();
@@ -45,8 +47,9 @@ public final class FoundationScreen extends ScreenAdapter {
     private final List<TextButton> focusOrder = new ArrayList<>();
     private boolean disposed;
 
-    public FoundationScreen(GameDesignCatalog catalog, Skin skin) {
+    public FoundationScreen(GameDesignCatalog catalog, Skin skin, ShellStrings strings) {
         this.skin = skin;
+        this.strings = strings;
         stage = new Stage(new FitViewport(PixelTheme.CANVAS_WIDTH, PixelTheme.CANVAS_HEIGHT));
         try {
             buildFrame(catalog);
@@ -76,8 +79,8 @@ public final class FoundationScreen extends ScreenAdapter {
         var header = new Table();
         header.setBackground(skin.getDrawable("toolbar"));
         header.pad(SPACE, SPACE_LARGE, SPACE, SPACE_LARGE);
-        header.add(label("Bullbear", "default", 1.65f)).growX().left();
-        header.add(label("FOUNDATION / PHASE 01", "status", 1.15f)).right();
+        header.add(label(strings.get("app.title"), "default", 1.65f)).growX().left();
+        header.add(label(strings.get("app.phase"), "status", 1.15f)).right();
         frame.add(header).growX().row();
 
         var panel = new Table();
@@ -91,11 +94,10 @@ public final class FoundationScreen extends ScreenAdapter {
         footer.setBackground(skin.getDrawable("toolbar"));
         footer.pad(SPACE_SMALL, SPACE_LARGE, SPACE_SMALL, SPACE_LARGE);
         var metadata =
-                "Catalog IDs: %d stocks / %d sources / %d charm categories"
-                        .formatted(
-                                catalog.stockIds().size(),
-                                catalog.sourceIds().size(),
-                                catalog.charmCategories().size());
+                strings.catalog(
+                        catalog.stockIds().size(),
+                        catalog.sourceIds().size(),
+                        catalog.charmCategories().size());
         footer.add(label(metadata, "muted", 1.1f)).growX().left();
         frame.add(footer).growX();
     }
@@ -107,18 +109,18 @@ public final class FoundationScreen extends ScreenAdapter {
         controls.clearChildren();
 
         var route = navigation.current();
-        var heading = label(route == Route.HOME ? "Workspace" : route.title(), "default", 2.7f);
+        var heading = label(strings.route(route), "default", 2.7f);
         heading.setAlignment(Align.center);
         content.add(heading).center();
         if (route != Route.HOME) {
             content.row();
             // The bundled bitmap font has no em dash glyph.
             var status = new Table();
-            status.add(label("Not implemented", "muted", 1.45f));
+            status.add(label(strings.get("status.unavailable"), "muted", 1.45f));
             status.add(new Image(skin.getDrawable("muted")))
                     .size(SPACE, 2)
                     .pad(0, SPACE_SMALL, 0, SPACE_SMALL);
-            status.add(label("Phase 01", "muted", 1.45f));
+            status.add(label(strings.get("status.phase"), "muted", 1.45f));
             content.add(status).padTop(SPACE_SMALL).top();
         }
 
@@ -126,7 +128,7 @@ public final class FoundationScreen extends ScreenAdapter {
             for (Route feature : FEATURES) {
                 controls.add(
                                 button(
-                                        feature.title(),
+                                        strings.route(feature),
                                         () -> {
                                             navigation.navigateTo(feature);
                                             showRoute();
@@ -138,12 +140,16 @@ public final class FoundationScreen extends ScreenAdapter {
             }
             controls.row();
         } else {
-            controls.add(button("Back / Home", this::goHome))
+            controls.add(button(strings.get("action.back"), this::goHome))
                     .width(192)
                     .height(CONTROL_HEIGHT)
                     .left();
         }
-        var exit = controls.add(button("Exit", () -> Gdx.app.exit())).height(44).width(112).right();
+        var exit =
+                controls.add(button(strings.get("action.exit"), () -> Gdx.app.exit()))
+                        .height(44)
+                        .width(112)
+                        .right();
         if (route == Route.HOME) {
             exit.colspan(FEATURES.size()).padTop(SPACE);
         } else {

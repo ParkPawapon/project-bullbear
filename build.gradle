@@ -94,10 +94,6 @@ subprojects {
             testRuntimeOnly libs.junit.launcher
         }
         configurations.configureEach {
-            // The formatter declares an older Guava affected by GHSA-xxph-c9ww-hj94.
-            if (name.startsWith('spotless')) {
-                resolutionStrategy.force("com.google.guava:guava:${formatterGuava}")
-            }
             if (name in ['compileClasspath', 'runtimeClasspath', 'testCompileClasspath', 'testRuntimeClasspath',
                          'jacocoAgent', 'jacocoAnt', 'spotbugs']) {
                 resolutionStrategy.activateDependencyLocking()
@@ -105,6 +101,22 @@ subprojects {
         }
         dependencyLocking {
             lockMode = LockMode.STRICT
+        }
+    }
+
+    dependencies {
+        components {
+            // Spotless resolves formatters in detached configurations. Fix the formatter's
+            // dependency metadata for GHSA-xxph-c9ww-hj94 before those graphs are resolved.
+            withModule('com.google.googlejavaformat:google-java-format') { details ->
+                details.allVariants { variant ->
+                    variant.withDependencies { declared ->
+                        declared.findAll { it.group == 'com.google.guava' && it.name == 'guava' }.each {
+                            it.version { version -> version.require(formatterGuava) }
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -47,6 +47,7 @@ jobs:
           cache-read-only: ${{ github.event_name != 'push' }}
       - name: Build on Windows
         if: runner.os == 'Windows'
+        shell: pwsh
         run: .\gradlew.bat --no-daemon clean build :desktop:installDist
       - name: Build on macOS and Linux
         if: runner.os != 'Windows'
@@ -65,6 +66,17 @@ jobs:
           timeout 60s xvfb-run -a -s '-screen 0 1280x720x24' desktop/build/install/bullbear/bin/bullbear --smoke-test | tee "${RUNNER_TEMP}/bullbear-smoke.log"
           grep -Fx FOUNDATION_SMOKE_OK "${RUNNER_TEMP}/bullbear-smoke.log"
         shell: bash
+      - name: Upload test and quality reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports-${{ matrix.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            */build/test-results/test/TEST-*.xml
+            */build/reports/jacoco/test/
+            */build/reports/spotbugs/
+          if-no-files-found: warn
+          retention-days: 7
 
   codeql:
     name: CodeQL Java analysis
@@ -96,11 +108,38 @@ jobs:
         with:
           fail-on-severity: high
 
+  security:
+    name: Local security checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan pinned Maven coordinates
+        run: python3 .github/scripts/audit_dependencies.py
+      - name: Scan reachable Git history for secrets
+        run: |
+          work="$(mktemp -d)"
+          curl --fail --silent --show-error --location 'https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz' --output "$work/gitleaks.tar.gz"
+          printf '%s  %s\n' '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb' "$work/gitleaks.tar.gz" | sha256sum -c
+          tar -xzf "$work/gitleaks.tar.gz" -C "$work" gitleaks
+          "$work/gitleaks" git --redact --no-banner --log-opts=--all .
+      - name: Upload advisory summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: advisory-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/reports/security/osv.txt
+          if-no-files-found: warn
+          retention-days: 7
+
   gate:
     name: CI gate
     runs-on: ubuntu-24.04
     timeout-minutes: 2
-    needs: [build, contribution, codeql, dependency_review]
+    needs: [build, contribution, codeql, dependency_review, security]
     if: ${{ always() }}
     steps:
       - name: Require every applicable check to pass
@@ -108,11 +147,13 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           CONTRIBUTION_RESULT: ${{ needs.contribution.result }}
           CODEQL_RESULT: ${{ needs.codeql.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
           DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency_review.result }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           test "$BUILD_RESULT" = success
           test "$CODEQL_RESULT" = success
+          test "$SECURITY_RESULT" = success
           if [ "$EVENT_NAME" = pull_request ]; then
             test "$CONTRIBUTION_RESULT" = success
             test "$DEPENDENCY_REVIEW_RESULT" = success
@@ -141,6 +182,7 @@ jobs:
           cache-read-only: true
       - name: Package Windows archive
         if: runner.os == 'Windows'
+        shell: pwsh
         run: .\gradlew.bat --no-daemon :desktop:distZip
       - name: Package macOS or Linux archive
         if: runner.os != 'Windows'

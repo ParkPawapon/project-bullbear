@@ -1,0 +1,73 @@
+abstract class VerifyBullbearArchitecture extends DefaultTask {
+    @Input
+    abstract MapProperty<String, List<String>> getDeclaredDependencies()
+
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getSources()
+
+    @Internal
+    abstract DirectoryProperty getWorkspaceDirectory()
+
+    @TaskAction
+    void verify() {
+        def allowed = [
+            domain: [],
+            application: [':domain'],
+            presentation: [':application', 'com.badlogicgames.gdx:gdx'],
+            desktop: [':application', ':presentation', 'com.badlogicgames.gdx:gdx-backend-lwjgl3',
+                      'com.badlogicgames.gdx:gdx-platform']
+        ]
+        if (declaredDependencies.get().keySet() != allowed.keySet()) {
+            throw new GradleException('Project modules differ from the architecture allowlist.')
+        }
+        declaredDependencies.get().each { name, targets ->
+            targets.each { target ->
+                if (!(target in allowed[name])) {
+                    throw new GradleException(":${name} declares an unapproved production dependency: ${target}")
+                }
+            }
+        }
+
+        def forbidden = [
+            domain: /(?:game\.bullbear\.(?:application|presentation|desktop)|com\.badlogic\.gdx|org\.lwjgl|java\.awt|javax\.swing|javafx|java\.io|java\.nio\.file|java\.net)\b/,
+            application: /(?:game\.bullbear\.(?:presentation|desktop)|com\.badlogic\.gdx|org\.lwjgl|java\.awt|javax\.swing|javafx|java\.io|java\.nio\.file|java\.net)\b/,
+            presentation: /(?:game\.bullbear\.desktop|com\.badlogic\.gdx\.backends|org\.lwjgl)\b/
+        ]
+        def root = workspaceDirectory.get().asFile.toPath()
+        sources.each { file ->
+            def relative = root.relativize(file.toPath())
+            def imports = forbidden[relative.getName(0).toString()]
+            if (imports != null &&
+                    file.readLines('UTF-8').any { it =~ /^\s*import\s+(?:static\s+)?${imports}/ }) {
+                throw new GradleException("Prohibited production import in ${relative}")
+            }
+        }
+    }
+}
+
+def architecture = tasks.register('verifyArchitecture', VerifyBullbearArchitecture) {
+    group = 'verification'
+    description = 'Enforces production module and library boundaries.'
+    workspaceDirectory.set(layout.projectDirectory)
+}
+gradle.projectsEvaluated {
+    def production = ['api', 'implementation', 'compileOnlyApi', 'compileOnly', 'runtimeOnly', 'annotationProcessor']
+    def declared = subprojects.collectEntries { module ->
+        def targets = production.collectMany { name ->
+            module.configurations.findByName(name)?.allDependencies?.toList() ?: []
+        }.collect { dependency ->
+            dependency instanceof ProjectDependency
+                ? dependency.path
+                : "${dependency.group}:${dependency.name}".toString()
+        }.unique().sort()
+        [(module.name): targets]
+    }
+    def sourceTrees = subprojects.collect { module ->
+        module.fileTree('src/main/java').matching { include '**/*.java' }
+    }
+    architecture.configure {
+        declaredDependencies.set(declared)
+        sources.from(sourceTrees)
+    }
+}

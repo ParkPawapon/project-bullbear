@@ -9,7 +9,10 @@ import game.bullbear.domain.stock.StockId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -158,5 +161,154 @@ class ValueContractsTest {
         assertThrows(
                 NullPointerException.class,
                 () -> new GameRules(goals(), coin(0), null, SOURCES, 1, 1));
+    }
+
+    @Test
+    void allocationIsCopiedNormalizedAndCheckedAtConstruction() {
+        var input =
+                new HashMap<>(
+                        Map.of(
+                                StockId.STABLE,
+                                coin(4),
+                                StockId.GROWTH,
+                                coin(0),
+                                StockId.VOLATILE,
+                                coin(2)));
+        var allocation = new Investment.Allocation(input);
+        input.clear();
+        assertEquals(
+                List.of(StockId.STABLE, StockId.VOLATILE),
+                List.copyOf(allocation.amounts().keySet()));
+        assertEquals(coin(6), allocation.total());
+        assertThrows(UnsupportedOperationException.class, () -> allocation.amounts().clear());
+        assertThrows(
+                ArithmeticException.class,
+                () ->
+                        new Investment.Allocation(
+                                Map.of(
+                                        StockId.STABLE,
+                                        coin(Long.MAX_VALUE),
+                                        StockId.GROWTH,
+                                        coin(1))));
+        input.put(StockId.STABLE, null);
+        assertThrows(NullPointerException.class, () -> new Investment.Allocation(input));
+        assertEquals(coin(0), new Investment.Allocation(Map.of()).total());
+    }
+
+    @Test
+    void settlementValidatesAllMovementsReturnCoverageAndReward() {
+        var commitment =
+                new Investment.Commitment(
+                        new RoundKey(new RunId(1), 1, 1),
+                        new Investment.Allocation(
+                                Map.of(StockId.STABLE, coin(2), StockId.GROWTH, coin(4))));
+        var directions = movements();
+        var returns = new HashMap<>(Map.of(StockId.STABLE, coin(0), StockId.GROWTH, coin(8)));
+        var settlement =
+                new Investment.Settlement(
+                        commitment, directions, returns, special(2), Optional.empty());
+        assertEquals(coin(8), settlement.totalReturned());
+        assertEquals(2L, settlement.profitOrLoss());
+        assertThrows(UnsupportedOperationException.class, () -> settlement.returned().clear());
+        assertThrows(UnsupportedOperationException.class, () -> settlement.movements().clear());
+        returns.put(StockId.GROWTH, coin(6));
+        assertEquals(
+                0L,
+                new Investment.Settlement(
+                                commitment, directions, returns, special(0), Optional.empty())
+                        .profitOrLoss());
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new Investment.Settlement(
+                                commitment, directions, returns, special(1), Optional.empty()));
+        returns.put(StockId.GROWTH, coin(5));
+        assertEquals(
+                -1L,
+                new Investment.Settlement(
+                                commitment, directions, returns, special(0), Optional.empty())
+                        .profitOrLoss());
+        returns.put(StockId.GROWTH, coin(Long.MAX_VALUE));
+        returns.put(StockId.STABLE, coin(1));
+        assertThrows(
+                ArithmeticException.class,
+                () ->
+                        new Investment.Settlement(
+                                commitment, directions, returns, special(0), Optional.empty()));
+        returns.remove(StockId.STABLE);
+        returns.put(StockId.VOLATILE, coin(0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new Investment.Settlement(
+                                commitment, directions, returns, special(0), Optional.empty()));
+        directions.remove(StockId.WILDCARD);
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new Investment.Settlement(
+                                commitment,
+                                directions,
+                                settlement.returned(),
+                                special(0),
+                                Optional.empty()));
+        assertEquals(CoinAmount.ZERO, settlement.returned().get(StockId.STABLE));
+        assertEquals(5, settlement.movements().size());
+    }
+
+    @Test
+    void newsIdentityIsUniqueWithinAKeyedBatchAndBatchTextIsRedacted() {
+        var key = new RoundKey(new RunId(1), 1, 1);
+        var claim =
+                new NewsClaim(
+                        new NewsClaim.Id("hidden-fixture"),
+                        NewsSourceId.D,
+                        StockId.FOLLOWER,
+                        NewsClaim.Polarity.NEGATIVE);
+        var input = new ArrayList<>(List.of(claim));
+        var round = new RoundEntry(key, coin(0), coin(0), input);
+        input.clear();
+        assertEquals(List.of(claim), round.claims());
+        assertFalse(round.toString().contains("hidden-fixture"));
+        assertThrows(UnsupportedOperationException.class, () -> round.claims().clear());
+        assertThrows(IllegalArgumentException.class, () -> entry(key, 0, 0, claim, claim));
+        assertThrows(IllegalArgumentException.class, () -> new NewsClaim.Id(""));
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        new NewsClaim(
+                                claim.id(), null, StockId.FOLLOWER, NewsClaim.Polarity.NEGATIVE));
+    }
+
+    @Test
+    void shopIsFixedOrderedAndCheckedBeforeRotation() {
+        var offer = Optional.of(CHARM);
+        var empty = Optional.<CharmDefinition.Id>empty();
+        var slots = new ArrayList<>(List.of(offer, empty));
+        var shop = new Shop(3, slots);
+        slots.clear();
+        assertEquals(List.of(offer, empty), shop.slots());
+        assertEquals(List.of(empty, empty), shop.consume(3, new Shop.SlotId(1), CHARM).slots());
+        assertThrows(GameRejection.class, () -> shop.consume(2, new Shop.SlotId(1), CHARM));
+        assertThrows(
+                GameRejection.class,
+                () -> shop.consume(3, new Shop.SlotId(1), new CharmDefinition.Id("wrong")));
+        assertThrows(GameRejection.class, () -> shop.consume(3, new Shop.SlotId(2), CHARM));
+        assertThrows(IllegalArgumentException.class, () -> new Shop.SlotId(0));
+        assertThrows(
+                IndexOutOfBoundsException.class, () -> shop.consume(3, new Shop.SlotId(3), CHARM));
+        assertThrows(UnsupportedOperationException.class, () -> shop.slots().clear());
+        assertThrows(IllegalArgumentException.class, () -> new Shop(-1, List.of(empty)));
+        assertThrows(IllegalArgumentException.class, () -> new Shop.Rotation(-1, List.of(empty)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> shop.rotate(new Shop.Rotation(3, List.of(empty)), catalog()));
+        assertThrows(
+                ArithmeticException.class,
+                () ->
+                        new Shop(Long.MAX_VALUE, List.of(offer, empty))
+                                .rotate(
+                                        new Shop.Rotation(Long.MAX_VALUE, List.of(empty, offer)),
+                                        catalog()));
     }
 }

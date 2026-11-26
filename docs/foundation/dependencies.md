@@ -10,10 +10,10 @@ Direct build versions are pinned in [the version catalog](../../gradle/libs.vers
 | LWJGL | 3.3.3 | Backend-selected Java bindings and natives for core, GLFW, OpenGL, jemalloc, OpenAL, and stb | BSD-3-Clause plus terms of bundled native libraries. [Pinned source](https://github.com/LWJGL/lwjgl3/tree/3.3.3) |
 | gdx-jnigen-loader | 2.5.2 | Transitive libGDX native loader | Apache-2.0. [Artifact metadata](https://repo.maven.apache.org/maven2/com/badlogicgames/gdx/gdx-jnigen-loader/2.5.2/gdx-jnigen-loader-2.5.2.pom) |
 | JLayer and JOrbis | 1.0.1-gdx and 0.0.17 | Backend-declared transitive audio decoders | LGPL 2.1 and GNU Library GPL v2 or later, respectively. [Distribution notices](../../THIRD_PARTY_NOTICES.md) |
-| JUnit BOM and Jupiter | 5.14.1 | Unit tests, engine, parameterized tests, and alignment of JUnit dependencies | EPL-2.0. [JUnit release](https://github.com/junit-team/junit-framework/releases/tag/r5.14.1) |
-| JUnit Platform launcher | 1.14.1 | Test runtime only, aligned by the BOM | EPL-2.0. [JUnit artifact metadata](https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-launcher/1.14.1/junit-platform-launcher-1.14.1.pom) |
-| Guava | 33.7.2-jre | Build-only override for the Spotless formatter classpath | Apache-2.0. [Patched dependency advisory](https://github.com/advisories/GHSA-xxph-c9ww-hj94) |
-| Spotless | 7.2.1 | Java formatting gate and apply task | Apache-2.0. [Gradle Plugin Portal](https://plugins.gradle.org/plugin/com.diffplug.spotless/7.2.1) |
+| JUnit BOM and Jupiter | 6.1.3 | Unit tests, engine, parameterized tests, and alignment of JUnit dependencies | EPL-2.0. [JUnit release notes](https://docs.junit.org/6.1.3/release-notes.html) |
+| JUnit Platform launcher | 6.1.3 | Test runtime only, aligned by the BOM | EPL-2.0. [JUnit artifact metadata](https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-launcher/6.1.3/junit-platform-launcher-6.1.3.pom) |
+| Guava | 33.7.2-jre | Build-only pin for the formatter and CycloneDX buildscript classpaths | Apache-2.0. [Patched dependency advisory](https://github.com/advisories/GHSA-xxph-c9ww-hj94) |
+| Spotless | 8.12.0 | Java formatting gate and apply task | Apache-2.0. [Gradle Plugin Portal](https://plugins.gradle.org/plugin/com.diffplug.spotless/8.12.0) |
 | google-java-format | 1.28.0 | Spotless formatter, using AOSP indentation | Apache-2.0. [Formatter release](https://github.com/google/google-java-format/releases/tag/v1.28.0) |
 
 The shell generates a solid-color texture and uses the libGDX classpath font. [Asset notices](../../THIRD_PARTY_NOTICES.md)
@@ -32,3 +32,10 @@ When changing a pin, run the command below with the JDK 21 toolchain. Review the
 ```
 
 On Windows use `.\gradlew.bat` in place of `./gradlew`. For a Wrapper upgrade, generate the Wrapper and compare its JAR checksum with Gradle's published value. CI pins actions to their release commits. Confirm each new tag-to-commit mapping before changing a pin.
+
+## November 2026 dependency maintenance
+
+- JUnit 6 uses the existing Java 21 toolchain. The four module locks use JUnit 6.1.3 for tests. SpotBugs still resolves JUnit BOM 5.14.1 metadata in its separate analysis configuration. [JUnit runtime requirements](https://docs.junit.org/6.1.3/overview.html#supported-java-versions)
+- Spotless 8 resolves formatters through detached Gradle configurations. The build applies a metadata rule only to google-java-format's Guava dependency, using the existing patched catalog version. The formatter remains at 1.28.0 with AOSP style. [Spotless provisioner at v8.12.0](https://github.com/diffplug/spotless/blob/e5df788483d5a8cd81070a9c023c14792f8bc6b9/plugin-gradle/src/main/java/com/diffplug/gradle/spotless/GradleProvisioner.java)
+- The verified inventory has 416 SHA-256 pins. All 33 new checksums were checked from the approved repositories and 28 superseded checksums were removed. The OSV lookup on 2026-11-27 found zero matches for 225 Maven coordinates. The generated desktop SBOM retained the same 15 runtime components as the Phase 02 baseline.
+- The CI and candidate workflows use the verified releases checkout 7.0.1, setup-java 6.3.0, and setup-gradle 6.4.1. The Java problem matcher is explicitly enabled. The Gradle action uses its open-source basic provider, with the existing PR cache-write restriction. [Checkout release](https://github.com/actions/checkout/releases/tag/v7.0.1) · [Setup Java release](https://github.com/actions/setup-java/releases/tag/v6.3.0) · [Gradle action cache configuration](https://github.com/gradle/actions/blob/v6.4.1/setup-gradle/action.yml)

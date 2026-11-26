@@ -1,9 +1,12 @@
 package game.bullbear.domain.game;
 
+import static game.bullbear.domain.game.GamePhase.FINISHED;
+import static game.bullbear.domain.game.GamePhase.GAME_OVER;
 import static game.bullbear.domain.game.GamePhase.INVESTMENT_COMMITTED;
 import static game.bullbear.domain.game.GamePhase.PLANNING;
 import static game.bullbear.domain.game.GamePhase.POST_RESULT;
 import static game.bullbear.domain.game.GamePhase.ROUND_ENTRY;
+import static game.bullbear.domain.game.GamePhase.VICTORY;
 import static game.bullbear.domain.game.GameRejection.Reason.INSUFFICIENT_COIN;
 import static game.bullbear.domain.game.GameRejection.Reason.STALE_INPUT;
 import static game.bullbear.domain.game.GameRejection.Reason.WRONG_PHASE;
@@ -133,6 +136,69 @@ public final class GameRun {
         result = nextResult;
         commitment = null;
         phase = POST_RESULT;
+    }
+
+    public void continueRound(RoundKey expected) {
+        require(expected, POST_RESULT);
+        if (key.finalRound()) {
+            throw new GameRejection(WRONG_PHASE);
+        }
+        openEntry(key.nextRound(), goal);
+    }
+
+    /** Close the final deposit window and assess the cumulative bank balance in one transition. */
+    public void closeStage(RoundKey expected, Optional<CoinAmount> nextEndlessGoal) {
+        require(expected, POST_RESULT);
+        if (!key.finalRound()) {
+            throw new GameRejection(WRONG_PHASE);
+        }
+        Objects.requireNonNull(nextEndlessGoal);
+        if (!key.endless() && nextEndlessGoal.isPresent()) {
+            throw new IllegalArgumentException("Campaign goals come from the configured schedule");
+        }
+        if (bank.compareTo(goal) < 0) {
+            phase = GAME_OVER;
+        } else if (key.endless()) {
+            advanceEndless(
+                    nextEndlessGoal.orElseThrow(
+                            () -> new IllegalArgumentException("Next endless goal is required")));
+        } else if (key.stage() == RoundKey.CAMPAIGN_STAGES) {
+            phase = VICTORY;
+        } else {
+            openEntry(key.nextStage(), rules.campaignGoals().get(key.stage()));
+        }
+    }
+
+    public void chooseEndless(RoundKey expected, CoinAmount nextGoal) {
+        require(expected, VICTORY);
+        advanceEndless(nextGoal);
+    }
+
+    public void finish(RoundKey expected) {
+        requireKey(expected);
+        if (phase != VICTORY && !(key.endless() && phase == POST_RESULT)) {
+            throw new GameRejection(WRONG_PHASE);
+        }
+        phase = FINISHED;
+    }
+
+    Optional<RoundEntry> currentEntry() {
+        return Optional.ofNullable(entry);
+    }
+
+    private void advanceEndless(CoinAmount nextGoal) {
+        if (nextGoal.compareTo(goal) <= 0) {
+            throw new IllegalArgumentException("Next goal must exceed the current goal");
+        }
+        openEntry(key.nextStage(), nextGoal);
+    }
+
+    private void openEntry(RoundKey nextKey, CoinAmount nextGoal) {
+        key = nextKey;
+        goal = nextGoal;
+        entry = null;
+        result = null;
+        phase = ROUND_ENTRY;
     }
 
     private void require(RoundKey expected, GamePhase requiredPhase) {

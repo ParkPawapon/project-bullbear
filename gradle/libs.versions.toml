@@ -4,6 +4,10 @@ junit = "5.14.1"
 spotless = "7.2.1"
 google-java-format = "1.28.0"
 formatter-guava = "33.7.2-jre"
+jacoco = "0.8.14"
+spotbugs-plugin = "6.5.13"
+spotbugs-tool = "4.10.5"
+cyclonedx = "3.6.1"
 
 [libraries]
 gdx = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
@@ -15,3 +19,5 @@ junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-plugin" }
+cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }

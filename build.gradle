@@ -1,18 +1,35 @@
+buildscript {
+    // CycloneDX's build-time graph also requests Guava before ordinary project configuration.
+    def catalogs = project.extensions.getByType(VersionCatalogsExtension)
+    def guava = catalogs.named('libs').findVersion('formatter-guava').get().requiredVersion
+    configurations.classpath.resolutionStrategy.force("com.google.guava:guava:${guava}")
+}
+
 plugins {
     id 'base'
     alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.spotbugs) apply false
+    alias(libs.plugins.cyclonedx) apply false
 }
 
 group = 'game.bullbear'
 version = '0.1.0'
 
 def formatterGuava = libs.versions.formatter.guava.get()
+def coverage = [
+    domain: [line: 0.90],
+    application: [line: 0.90],
+    presentation: [line: 0.10, branch: 0.08],
+    desktop: [line: 0.65, branch: 0.55]
+]
 
 subprojects {
     group = rootProject.group
     version = rootProject.version
 
     apply plugin: 'com.diffplug.spotless'
+    apply plugin: 'jacoco'
+    apply plugin: 'com.github.spotbugs'
 
     tasks.withType(AbstractArchiveTask).configureEach {
         preserveFileTimestamps = false
@@ -20,6 +37,41 @@ subprojects {
     }
 
     plugins.withId('java') {
+        jacoco.toolVersion = libs.versions.jacoco.get()
+        spotbugs {
+            toolVersion = libs.versions.spotbugs.tool.get()
+            reportLevel = com.github.spotbugs.snom.Confidence.valueOf('HIGH')
+        }
+        tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+            reports.create('xml') {
+                required = true
+            }
+        }
+        tasks.withType(JacocoReport).configureEach {
+            dependsOn 'test'
+            reports {
+                xml.required = true
+                html.required = true
+            }
+        }
+        def thresholds = coverage[project.name]
+        tasks.withType(JacocoCoverageVerification).configureEach {
+            dependsOn 'test'
+            violationRules {
+                rule {
+                    thresholds.each { counterName, threshold ->
+                        limit {
+                            counter = counterName.toUpperCase(Locale.ROOT)
+                            value = 'COVEREDRATIO'
+                            minimum = threshold
+                        }
+                    }
+                }
+            }
+        }
+        tasks.named('check') {
+            dependsOn 'jacocoTestReport', 'jacocoTestCoverageVerification'
+        }
         java {
             toolchain {
                 languageVersion = JavaLanguageVersion.of(21)
@@ -34,6 +86,7 @@ subprojects {
         }
         tasks.withType(Test).configureEach {
             useJUnitPlatform()
+            systemProperty 'file.encoding', 'UTF-8'
         }
         dependencies {
             testImplementation platform(libs.junit.bom)
@@ -45,7 +98,8 @@ subprojects {
             if (name.startsWith('spotless')) {
                 resolutionStrategy.force("com.google.guava:guava:${formatterGuava}")
             }
-            if (name in ['compileClasspath', 'runtimeClasspath', 'testCompileClasspath', 'testRuntimeClasspath']) {
+            if (name in ['compileClasspath', 'runtimeClasspath', 'testCompileClasspath', 'testRuntimeClasspath',
+                         'jacocoAgent', 'jacocoAnt', 'spotbugs']) {
                 resolutionStrategy.activateDependencyLocking()
             }
         }

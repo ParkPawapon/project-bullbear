@@ -14,7 +14,7 @@ flowchart TD
     Application --> Domain
 ```
 
-The launcher constructs the catalog and game. The game owns the screen and skin, and the screen owns its stage and navigation. The screen rebuilds its placeholder content when the selected route changes.
+The launcher loads desktop preferences and constructs the catalog and game. In the default workspace the game owns the screen and skin, and the screen owns its stage and navigation. The screen rebuilds its placeholder content when the selected route changes. The Thai preview has its own stage and texture.
 
 ```mermaid
 classDiagram
@@ -25,6 +25,9 @@ classDiagram
         <<enumeration>>
         INTERACTIVE
         HELP
+        VERSION
+        DIAGNOSTICS
+        THAI_PREVIEW
         SMOKE_TEST
         parse(args)
     }
@@ -89,10 +92,16 @@ classDiagram
     Game <|-- FoundationGame
     ScreenAdapter <|-- FoundationScreen
     DesktopLauncher ..> LauncherOptions
+    DesktopLauncher ..> DesktopDirectories
+    DesktopLauncher ..> SettingsStore
+    DesktopLauncher ..> DesktopDiagnostics
+    SettingsStore ..> DesktopSettings
     DesktopLauncher ..> FoundationGame : constructs
     DesktopLauncher ..> GameDesignCatalog : constructs
     FoundationGame --> GameDesignCatalog
     FoundationGame *-- FoundationScreen
+    FoundationGame *-- ThaiFontPreview
+    FoundationGame *-- OwnedResources
     FoundationGame ..> FoundationSkin
     FoundationGame *-- Skin
     FoundationSkin ..> PixelTheme
@@ -106,4 +115,4 @@ classDiagram
     GameDesignCatalog --> CharmCategory
 ```
 
-The [architecture overview](overview.md) documents future package ownership. These diagrams correspond to the Phase 01 source.
+The [architecture overview](overview.md) documents future package ownership. These diagrams correspond to the Phase 01.1 source.

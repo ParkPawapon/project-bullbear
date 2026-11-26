@@ -2,5 +2,7 @@
 gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+*.png binary
 /GAME_DESIGN.md -text
 /docs/foundation/licenses/OFL-Liberation.txt -text whitespace=-blank-at-eof,-blank-at-eol
+/docs/foundation/licenses/OFL-NotoSansThaiLooped.txt -text whitespace=-blank-at-eof,-blank-at-eol

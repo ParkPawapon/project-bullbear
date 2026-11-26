@@ -28,6 +28,8 @@ public final class DesktopLauncher {
         if (options == LauncherOptions.HELP) {
             System.out.println(USAGE);
             System.out.println("  --smoke-test  Render a real frame and exit.");
+            System.out.println("  --diagnostics Print frame and display diagnostics.");
+            System.out.println("  --thai-preview Show the technical Thai shaping preview.");
             return;
         }
         if (options == LauncherOptions.VERSION) {
@@ -69,9 +71,13 @@ public final class DesktopLauncher {
                 log.info("Audio preference retained. This shell has no audio assets.");
             }
             boolean smokeTest = options == LauncherOptions.SMOKE_TEST;
-            var game = new FoundationGame(new GameDesignCatalog(), smokeTest);
+            boolean diagnostics = options == LauncherOptions.DIAGNOSTICS || settings.diagnostics();
+            boolean thaiPreview = options == LauncherOptions.THAI_PREVIEW;
+            var game =
+                    new FoundationGame(
+                            new GameDesignCatalog(), smokeTest, diagnostics, thaiPreview);
             try {
-                new Lwjgl3Application(game, windowConfiguration(settings));
+                new Lwjgl3Application(game, windowConfiguration(settings, thaiPreview));
                 if (smokeTest) {
                     if (!game.smokeFrameRendered()) {
                         throw new IllegalStateException(
@@ -102,9 +108,10 @@ public final class DesktopLauncher {
         }
     }
 
-    private static Lwjgl3ApplicationConfiguration windowConfiguration(DesktopSettings settings) {
+    private static Lwjgl3ApplicationConfiguration windowConfiguration(
+            DesktopSettings settings, boolean thaiPreview) {
         var config = new Lwjgl3ApplicationConfiguration();
-        config.setTitle("Bullbear - Foundation");
+        config.setTitle(thaiPreview ? "Bullbear - Thai text preview" : "Bullbear - Foundation");
         config.setWindowedMode(settings.width(), settings.height());
         config.setWindowSizeLimits(DesktopSettings.MIN_WIDTH, DesktopSettings.MIN_HEIGHT, -1, -1);
         config.setHdpiMode(HdpiMode.Logical);

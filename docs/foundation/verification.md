@@ -80,3 +80,7 @@ The earlier gate table records the initial Phase 01 sign-off. See the [GitHub Ac
 The 2026-11-26 dependency audit found a high-severity advisory affecting the formatter's transitive Guava version. The formatter now resolves Guava 33.7.2-jre. The refreshed strict build ran all 31 tests. The 13 new or changed SHA-256 pins matched Maven Central. A repeat OSV advisory query reported zero matches for the 74 Maven coordinates in the updated manifest.
 
 The hosted build and test matrix and the Xvfb smoke check passed in [PR #7](https://github.com/ParkPawapon/project-bullbear/pull/7/checks). CodeQL and Dependency Review passed in [PR #8](https://github.com/ParkPawapon/project-bullbear/pull/8/checks). Its CodeQL analysis produced zero results. The [active repository rules](https://github.com/ParkPawapon/project-bullbear/rules) require successful checks from GitHub Actions and enforce CodeQL alert thresholds. The separate Code Owner review ruleset limits the PR review exception to ParkPawapon.
+
+## Phase 01.1 verification
+
+The current infrastructure passed 49 tests and bundled-runtime smoke launches on native Windows x64 and Linux x64 under WSLg. The current hosted workflows, standalone Linux, macOS and ARM64 builds, dedicated HiDPI and physical audio playback remain outside the exercised scope. See the [Phase 01.1 evidence](../engineering/phase-01.1-evidence.md) for the requirement register, exact commands, Thai preview results and candidate checksums.

@@ -28,7 +28,13 @@ public final class MarketExperiment {
     private MarketExperiment() {}
 
     public static void main(String[] args) {
-        statistics();
+        if (Arrays.equals(args, new String[] {"--benchmark"})) {
+            benchmark();
+        } else if (args.length == 0) {
+            statistics();
+        } else {
+            throw new IllegalArgumentException("Expected no arguments or --benchmark");
+        }
     }
 
     private static void statistics() {
@@ -188,6 +194,40 @@ public final class MarketExperiment {
         double expected = expectedBps / 10000.0;
         double tolerance = Math.max(0.01, 5 * Math.sqrt(expected * (1 - expected) / samples));
         return Math.abs((double) matches / samples - expected) <= tolerance;
+    }
+
+    private static void benchmark() {
+        int warmup = 2000;
+        long[] samples = new long[10_000];
+        long checksum = 0;
+        var owner = new MarketSession(RUN, 0, DEFAULT);
+        for (int sample = 0; sample < warmup + samples.length; sample++) {
+            int ordinal = sample % CAMPAIGN_ROUNDS + 1;
+            if (sample > 0 && ordinal == 1) {
+                owner = new MarketSession(RUN, sample / CAMPAIGN_ROUNDS, DEFAULT);
+            }
+            var round = key(ordinal);
+            long start = System.nanoTime();
+            var prepared = owner.prepare(round);
+            var proposal = owner.resolve(prepared, List.of());
+            var accepted = owner.accept(proposal);
+            long elapsed = System.nanoTime() - start;
+            checksum += accepted.quotes().get(StockId.STABLE).indexTicks();
+            if (sample >= warmup) {
+                samples[sample - warmup] = elapsed;
+            }
+        }
+        double seconds = Arrays.stream(samples).sum() / 1e9;
+        Arrays.sort(samples);
+        print(
+                "prepare+resolve+accept campaign rounds warmup=%d samples=%d summed=%.6f s rounds/s=%.0f p50=%.4f ms p95=%.4f ms checksum=%d",
+                warmup,
+                samples.length,
+                seconds,
+                samples.length / seconds,
+                samples[samples.length / 2 - 1] / 1e6,
+                samples[samples.length * 95 / 100 - 1] / 1e6,
+                checksum);
     }
 
     private static RoundKey key(int ordinal) {

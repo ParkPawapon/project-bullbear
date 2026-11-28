@@ -2,7 +2,7 @@
 
 [GAME_DESIGN.md](../../GAME_DESIGN.md) is the original source. The three identifier sets use the design counts and taxonomy plus the working identifier names in the foundation brief. Five named stocks and five source letters represent catalog metadata. D and E are reserved source identifiers. The four shell routes expose unavailable feature placeholders.
 
-| ID | Design requirement | Phase 01 evidence or future owner |
+| ID | Design requirement | Evidence or future owner |
 |---|---|---|
 | GD-01 | Read news and buy stocks without short-selling | Documented. Investment use case and domain validation later. |
 | GD-02 | Meet the monetary goal within three investment selections per stage | Documented. Progression later. |
@@ -10,12 +10,12 @@
 | GD-04 | Award special currency when the player profits | Documented. Settlement and charm economy later. |
 | GD-05 | Win at stage seven with optional endless continuation | Documented. Progression later. |
 | GD-06 | Provide five stocks | `StockId` and catalog. Working identifiers are Stable, Growth, Volatile, Follower, and Wildcard. |
-| GD-07 | Random stock movement with directional probability influenced by news | Documented. Market later. |
+| GD-07 | Random stock movement with directional probability influenced by news | Phase 03 simulates all five stocks and accepts resolved signed influence. Phase 04 supplies it from news claims. |
 | GD-08 | Choose news origin randomly among five sources | `NewsSourceId` and catalog hold only A–E. Selection later. |
 | GD-09 | Initially reveal three sources, with charms unlocking others | Documented. Application visibility policy later. |
-| GD-10 | Hidden news still influences the market | Documented. Market receives full news. Player read model restricts visible news. |
+| GD-10 | Hidden news still influences the market | Phase 03 applies signed impacts independently of the player projection. Phase 04 supplies the full impact set. |
 | GD-11 | Sources have base reliability and profit rate | Documented. A/B/C examples are qualitative. Values and rules are open. |
-| GD-12 | False news causes movement opposite to the stated direction | Documented. News truth and market rules later. |
+| GD-12 | False news causes movement opposite to the stated direction | Phase 04 owns truth and the source interpretation recorded in the [Phase 03 addendum](phase-03-market-design-addendum.md). |
 | GD-13 | Purchase passive charms with the special currency | Documented. Shop and economy later. |
 | GD-14 | Keep the shop available throughout play per design | Documented. Shop use case later. |
 | GD-15 | Leave a purchased slot vacant until an investment completes | Documented. Shop refresh rules later. |
@@ -28,7 +28,7 @@
 | GD-22 | Credit interest to the wallet | Documented. Economy later. |
 | GD-23 | Cap interest and grant a small minimum income per round | Documented. Amounts and formula are open. |
 | GD-24 | Start with an open Coin amount and keep allocations within the wallet | Documented. Economy and validation later. |
-| GD-25 | Show all five stock movements when confirming an investment | Documented. Presentation and settlement later. |
+| GD-25 | Show all five stock movements when confirming an investment | Phase 03 produces five aligned movements. Confirmation, settlement and presentation integration follow in Phase 05. |
 | GD-26 | Show money returned or lost and special currency awarded, then replenish the shop | Documented. Settlement, results and shop later. |
 | GD-27 | Choose whether to deposit or retain cash before the next interest payment | Documented. Bank and round orchestration later. |
 | GD-28 | Compare bank to goal at three rounds. Advance with charms on success or restart after failure. | Documented. Progression and economy later. |

@@ -4,8 +4,8 @@ Gradle compiles each layer separately, so the inner modules can be built and tes
 
 | Layer | Current responsibility | Future ownership |
 |---|---|---|
-| `domain` | Design identities, the core run aggregate, rules, trusted round inputs and an immutable player view | Market, news, economy and charm algorithms |
-| `application` | Identity catalog, seeded random factory, and an in-memory session boundary for explicitly configured runs | Playable use cases and coordination of resolvers |
+| `domain` | Design identities, core run aggregate, immutable player view and deterministic market simulation | News, settlement, economy and charm algorithms |
+| `application` | Identity catalog, seeded random factory, in-memory game session and headless market owner | Playable use cases and coordination of resolvers |
 | `presentation` | One workspace and route-specific placeholder content | Screens, input, charts, animation, and localization |
 | `desktop` | CLI, host startup, native window, composition, local settings and logs, app-image packaging | Platform adapters for future use cases |
 
@@ -15,4 +15,6 @@ The current OOP evidence is private route state with validated transitions, immu
 
 Phase 02 groups structural types under `domain.game` and keeps the stock, news and charm enum contracts. `GameRun` owns balances and transitions. `GameSession` in `application.game` gives callers immutable snapshots and reserves aggregate access for trusted coordination. It is exercised by headless tests. Desktop continues to compose the catalog and shell. Future resolvers can receive a `RandomGenerator` from `SimulationRandom.seeded` and supply trusted inputs at the tested boundaries.
 
-[Module and shell diagrams](diagrams.md) · [Domain model and sequence](domain-model.md) · [Run state machine](game-state-machine.md) · [Architecture decisions](decisions.md)
+Phase 03 freezes a round's mood, noise and optional event before resolving five returns in `domain.market`. `MarketSession` in `application.market` owns accepted market state for headless callers. `GameRun` retains ownership of money and the run lifecycle. A future coordinator connects market acceptance to settlement.
+
+[Module and shell diagrams](diagrams.md) · [Domain model and sequence](domain-model.md) · [Market simulation](market-simulation.md) · [Run state machine](game-state-machine.md) · [Architecture decisions](decisions.md)
